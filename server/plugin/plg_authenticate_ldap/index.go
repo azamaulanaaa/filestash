@@ -68,11 +68,35 @@ The plugin exposes the LDAP attribute of the authenticated users which can be us
 }
 
 func (this Ldap) EntryPoint(idpParams map[string]string, req *http.Request, res http.ResponseWriter) error {
-	http.Redirect(
-		res, req,
-		"https://www.filestash.app/purchase-enterprise-selfhosted.html",
-		http.StatusTemporaryRedirect,
-	)
+	getFlash := func() string {
+		c, err := req.Cookie("flash")
+		if err != nil {
+			return ""
+		}
+		http.SetCookie(res, &http.Cookie{
+			Name:   "flash",
+			MaxAge: -1,
+			Path:   "/",
+		})
+		return fmt.Sprintf(`<p class="flash">%s</p>`, c.Value)
+	}
+	res.Header().Set("Content-Type", "text/html; charset=utf-8")
+	res.WriteHeader(http.StatusOK)
+	res.Write([]byte(Page(`
+			<form action="` + WithBase("/api/session/auth/") + `" method="post" class="component_middleware">
+				<label>
+					<input type="text" name="user" value="" placeholder="User" autocorrect="off" autocapitalize="off" />
+				</label>
+				<label>
+					<input type="password" name="password" value="" placeholder="Password" />
+				</label>
+				<button>CONNECT</button>
+				` + getFlash() + `
+				<style>
+					.flash{ color: #f26d6d; font-weight: bold; }
+					form { padding-top: 10vh; }
+				</style>
+			</form>`)))
 	return nil
 }
 
