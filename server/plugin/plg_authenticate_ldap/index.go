@@ -117,11 +117,26 @@ func (this Ldap) Callback(formData map[string]string, idpParams map[string]strin
 	userFilter := idpParams["Search Filter"]
 
 	// Validate required parameters
-	if ldapHost == "" || ldapPortStr == "" || userSearchBase == "" || userFilter == "" {
-		Log.Error("plg_authenticate_ldap::callback missing required LDAP configuration: Hostname, Port, Base DN, or Search Filter")
+	missingFields := []string{}
+	if ldapHost == "" {
+		missingFields = append(missingFields, "Hostname")
+	}
+	if ldapPortStr == "" {
+		missingFields = append(missingFields, "Port")
+	}
+	if userSearchBase == "" {
+		missingFields = append(missingFields, "Base DN")
+	}
+	if userFilter == "" {
+		missingFields = append(missingFields, "Search Filter")
+	}
+
+	if len(missingFields) > 0 {
+		errMsg := fmt.Sprintf("Missing required LDAP configuration: %s", strings.Join(missingFields, ", "))
+		Log.Error("plg_authenticate_ldap::callback %s", errMsg)
 		http.SetCookie(res, &http.Cookie{
 			Name:   "flash",
-			Value:  "LDAP configuration error: Missing required fields",
+			Value:  "LDAP configuration error: " + errMsg,
 			MaxAge: 1,
 			Path:   "/",
 		})
